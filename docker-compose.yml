@@ -6,6 +6,6 @@ services:
       - "8000:8000"
     volumes:
       - ./src/server/db:/app/db
-    env_file:
-      - ./src/server/.env
+    environment:
+      - DB_PATH=/app/db/vault.sqlite
     
