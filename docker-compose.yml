@@ -1,0 +1,11 @@
+services:
+  vault-server:
+    build:
+      context: ./server
+    ports:  
+      - "8000:8000"
+    volumes:
+      - ./server/db:/app/db
+    env_file:
+      - ./server/.env
+    
