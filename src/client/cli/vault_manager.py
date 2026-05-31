@@ -7,7 +7,7 @@ SERVER_URL = "http://localhost:8000"
 
 
 def init_vault(username: str, master_password: str) -> str:
-
+    """Initialize a new vault."""
     master_key = sss.generate_master_key()
 
     shares = sss.split_key(master_key)
@@ -77,3 +77,35 @@ def open_vault_normal(username: str, mater_password: str) -> dict:
         return vault_data
     except Exception as e:
         raise Exception("Failed to decrypt vault. Data may be corrupted.") from e
+    
+
+def open_vault_backup(master_password: str, recovery_share: str) -> dict:
+    """Open vault in backup mode using recovery share."""
+    salt = storage.get_item("kdf_salt")
+    local_share_cipher = storage.get_item("local_share_cipher")
+    local_share_nonce = storage.get_item("local_share_nonce")
+
+    backup_vault_cipher = storage.get_item("backup_vault_cipher")
+    backup_vault_nonce = storage.get_item("backup_vault_nonce")
+
+    if not all([salt, local_share_cipher, local_share_nonce, backup_vault_cipher, backup_vault_nonce]):
+        raise Exception("Client not properly initialized. Missing local share or backup vault data.")
+    
+    derived_key = kdf.derive_key(master_password, salt)
+    try:
+        local_share_bytes = aes_gcm.decrypt_data(local_share_cipher, local_share_nonce, derived_key)
+        local_share = local_share_bytes.decode("utf-8")
+    except Exception as e:
+        raise Exception("Failed to decrypt local share. Incorrect master password?") from e
+    
+    try:
+        master_key = sss.reconstruct_key(local_share, recovery_share)
+    except Exception as e:
+        raise Exception("Failed to reconstruct master key. Incorrect recovery share?") from e
+    
+    try:
+        vault_bytes = aes_gcm.decrypt_data(backup_vault_cipher, backup_vault_nonce, master_key)
+        vault_data = json.loads(vault_bytes.decode("utf-8"))
+        return vault_data
+    except Exception as e:
+        raise Exception("Failed to decrypt backup vault. Data may be corrupted.") from e
