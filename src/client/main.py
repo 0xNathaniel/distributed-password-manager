@@ -79,21 +79,82 @@ def vault_menu(username: str, vault_data: dict, master_password: str, is_backup:
             if is_backup:
                 print("[-] AKSI DITOLAK: Anda berada dalam Mode Backup. Tidak dapat mengubah data.")
             else:
-                # TODO: Implementasi Fitur Ubah Password
-                print("\n[+] Fitur Ubah Password akan segera diimplementasikan.")
+                print("\n[+] Ubah Data Password")
+                service = input("Masukkan Nama Layanan yang ingin diubah: ")
+                
+                if service not in vault_data:
+                    print(f"[-] Layanan '{service}' tidak ditemukan di vault.")
+                    continue
+                    
+                print(f"Data saat ini untuk {service}:")
+                print(f"Username: {vault_data[service].get('username')}")
+                print(f"Catatan : {vault_data[service].get('catatan', '-')}")
+                
+                print("\nApa yang ingin diubah?")
+                print("1. Username/Email")
+                print("2. Password")
+                print("3. Catatan")
+                print("4. Batal")
+                
+                ubah_pilihan = input("Pilih (1-4): ")
+                
+                old_data = vault_data[service].copy()
+                
+                if ubah_pilihan == '1':
+                    vault_data[service]['username'] = input("Username / Email baru: ")
+                elif ubah_pilihan == '2':
+                    print("Pilih metode password baru:")
+                    print("a. Input manual")
+                    print("b. Generate otomatis (CSPRNG)")
+                    metode = input("Pilihan (a/b): ").lower()
+                    
+                    if metode == 'b':
+                        panjang_str = input("Masukkan panjang password (minimal 4, tekan enter untuk 16): ")
+                        panjang = int(panjang_str) if panjang_str.isdigit() else 16
+                        pwd = generate_secure_password(max(4, panjang))
+                        print(f"[!] Password baru dibangkitkan: {pwd}")
+                        vault_data[service]['password'] = pwd
+                    else:
+                        vault_data[service]['password'] = getpass.getpass("Masukkan password baru: ")
+                elif ubah_pilihan == '3':
+                    vault_data[service]['catatan'] = input("Catatan baru: ")
+                elif ubah_pilihan == '4':
+                    continue
+                else:
+                    print("[-] Pilihan tidak valid.")
+                    continue
+                    
+                try:
+                    update_vault(username, vault_data, master_key)
+                    print(f"[+] Berhasil mengubah data untuk '{service}'. Vault telah disinkronisasi.")
+                except Exception as e:
+                    print(f"[-] Gagal menyimpan pembaruan ke server: {e}")
+                    vault_data[service] = old_data
             
         elif pilihan == '4':
             if is_backup:
                 print("[-] AKSI DITOLAK: Anda berada dalam Mode Backup. Tidak dapat menghapus data.")
             else:
-                # TODO: Implementasi Fitur Hapus Password
-                print("\n[+] Fitur Hapus Password akan segera diimplementasikan.")
-            
-        elif pilihan == '5':
-            print("[+] Mengunci vault dan kembali ke menu utama...")
-            break
-        else:
-            print("[-] Pilihan tidak valid, silakan coba lagi.")
+                print("\n[+] Hapus Data Password")
+                service = input("Masukkan Nama Layanan yang ingin dihapus: ")
+                
+                if service not in vault_data:
+                    print(f"[-] Layanan '{service}' tidak ditemukan di vault.")
+                    continue
+                    
+                konfirmasi = input(f"Apakah Anda yakin ingin menghapus data untuk '{service}'? (y/n): ").lower()
+                
+                if konfirmasi == 'y':
+                    old_data = vault_data.pop(service)
+                    
+                    try:
+                        update_vault(username, vault_data, master_key)
+                        print(f"[+] Berhasil menghapus data '{service}'. Vault telah disinkronisasi.")
+                    except Exception as e:
+                        print(f"[-] Gagal menghapus data di server: {e}")
+                        vault_data[service] = old_data
+                else:
+                    print("[-] Penghapusan dibatalkan.")
 
 def main_menu():
     while True:
