@@ -1,3 +1,5 @@
 cryptography
 pycryptodome
 requests
+qrcode
+Pillow
