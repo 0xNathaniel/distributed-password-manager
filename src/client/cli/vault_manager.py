@@ -1,5 +1,7 @@
 import json
 import requests
+import string
+import secrets
 from crypto import aes_gcm, kdf, sss
 from cli import storage
 
@@ -74,7 +76,7 @@ def open_vault_normal(username: str, mater_password: str) -> dict:
     try:
         vault_bytes = aes_gcm.decrypt_data(vault_cipher, vault_nonce, master_key)
         vault_data = json.loads(vault_bytes.decode("utf-8"))
-        return vault_data
+        return vault_data, master_key
     except Exception as e:
         raise Exception("Failed to decrypt vault. Data may be corrupted.") from e
     
@@ -109,3 +111,37 @@ def open_vault_backup(master_password: str, recovery_share: str) -> dict:
         return vault_data
     except Exception as e:
         raise Exception("Failed to decrypt backup vault. Data may be corrupted.") from e
+    
+
+def generate_secure_password(length: int = 16) -> str:
+    """Generate a secure random password."""
+    if length < 4:
+        length = 4
+
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    
+    while True:
+        password = ''.join(secrets.choice(alphabet) for _ in range(length))
+        if (any(c.islower() for c in password)
+                and any(c.isupper() for c in password)
+                and any(c.isdigit() for c in password)
+                and any(c in string.punctuation for c in password)):
+            return password
+
+
+def update_vault(username: str, vault_data: dict, master_key: bytes) -> None:
+    """Encrypt and update vault data on the server."""
+    vault_bytes = json.dumps(vault_data).encode("utf-8")
+    vault_cipher, vault_nonce = aes_gcm.encrypt_data(vault_bytes, master_key)
+
+    storage.save_backup_vault(vault_cipher, vault_nonce)
+
+    payload = {
+        "vault_ciphertext": vault_cipher.hex(),
+        "vault_nonce": vault_nonce.hex()
+    }
+
+    response = requests.put(f"{SERVER_URL}/api/vault/{username}", json=payload)
+
+    if response.status_code != 200:
+        raise Exception(f"Failed to update vault: {response.text}")

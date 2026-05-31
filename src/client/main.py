@@ -1,13 +1,15 @@
 import sys
 import getpass
 from cli import storage
-from cli.vault_manager import init_vault, open_vault_normal, open_vault_backup
+from cli.vault_manager import (
+    init_vault, 
+    open_vault_normal, 
+    open_vault_backup,
+    generate_secure_password,
+    update_vault
+)
 
-def vault_menu(username: str, vault_data: dict, master_password: str, is_backup: bool = False):
-    """
-    Menu interaktif di dalam vault setelah pengguna berhasil login.
-    Menangani operasi CRUD untuk data password. Jika is_backup=True, operasi dibatasi (Read-Only).
-    """
+def vault_menu(username: str, vault_data: dict, master_password: str, is_backup: bool = False, master_key: bytes = None):
     while True:
         mode_status = "[MODE BACKUP - READ ONLY]" if is_backup else "[MODE NORMAL]"
         print(f"\n=== Vault Menu ({username}) {mode_status} ===")
@@ -36,8 +38,42 @@ def vault_menu(username: str, vault_data: dict, master_password: str, is_backup:
             if is_backup:
                 print("[-] AKSI DITOLAK: Anda berada dalam Mode Backup. Tidak dapat menambah data.")
             else:
-                # TODO: Implementasi Fitur Tambah Password
-                print("\n[+] Fitur Tambah Password akan segera diimplementasikan.")
+                print("\n[+] Tambah Data Password Baru")
+                service = input("Nama Layanan (misal: GitHub): ")
+                if service in vault_data:
+                    print(f"[-] Layanan {service} sudah ada. Silakan gunakan menu Ubah Password.")
+                    continue
+                    
+                user_id = input("Username / Email: ")
+                
+                print("Pilih metode password:")
+                print("a. Input manual")
+                print("b. Generate otomatis (CSPRNG)")
+                metode = input("Pilihan (a/b): ").lower()
+                
+                pwd = ""
+                if metode == 'b':
+                    panjang_str = input("Masukkan panjang password (minimal 4, tekan enter untuk 16): ")
+                    panjang = int(panjang_str) if panjang_str.isdigit() else 16
+                    pwd = generate_secure_password(max(4, panjang))
+                    print(f"[!] Password dibangkitkan: {pwd}")
+                else:
+                    pwd = getpass.getpass("Masukkan password: ")
+                    
+                catatan = input("Catatan (opsional): ")
+                
+                vault_data[service] = {
+                    "username": user_id,
+                    "password": pwd,
+                    "catatan": catatan
+                }
+                
+                try:
+                    update_vault(username, vault_data, master_key)
+                    print(f"[+] Berhasil menambahkan akun untuk {service} dan vault telah disinkronisasi.")
+                except Exception as e:
+                    print(f"[-] Gagal menyimpan pembaruan: {e}")
+                    del vault_data[service]
             
         elif pilihan == '3':
             if is_backup:
@@ -113,9 +149,9 @@ def main_menu():
             
             if mode == '1':
                 try:
-                    vault_data = open_vault_normal(username, password)
+                    vault_data, master_key = open_vault_normal(username, password)
                     print("\n[+] BERHASIL: Otorisasi valid. Vault dibuka (Mode Normal).")
-                    vault_menu(username, vault_data, password, is_backup=False)
+                    vault_menu(username, vault_data, password, is_backup=False, master_key=master_key)
                 except Exception as e:
                     print(f"[-] {e}")
                     print("    Saran: Jika server sedang mati, silakan gunakan Mode Backup.")
@@ -125,7 +161,7 @@ def main_menu():
                 try:
                     vault_data = open_vault_backup(password, recovery_share)
                     print("\n[+] BERHASIL: Rekonstruksi valid. Vault dibuka (Mode Backup).")
-                    vault_menu(username, vault_data, password, is_backup=True)
+                    vault_menu(username, vault_data, password, is_backup=True, master_key=None)
                 except Exception as e:
                     print(f"[-] {e}")
             
