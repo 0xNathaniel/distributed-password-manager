@@ -8,6 +8,7 @@ from cli.vault_manager import (
     generate_secure_password,
     update_vault
 )
+from cli.visual_crypto import generate_visual_shares
 
 def vault_menu(username: str, vault_data: dict, master_password: str, is_backup: bool = False, master_key: bytes = None):
     while True:
@@ -191,6 +192,14 @@ def main_menu():
                 print("[!] PERINGATAN KELANGSUNGAN HIDUP VAULT ANDA:")
                 print("Simpan recovery share ini di tempat yang aman (copy-paste).")
                 print("Jika server mati dan Anda kehilangan share ini, vault tidak bisa dibuka!")
+
+                print("\n[+] Memproses Kriptografi Visual untuk Recovery Share...")
+                s1, s2, comb = generate_visual_shares(recovery_share, f"recovery_{username}")
+                print("[!] Berhasil! 3 file gambar telah dibuat di direktori saat ini:")
+                print(f"    - {s1} (Simpan di tempat A)")
+                print(f"    - {s2} (Simpan di tempat B)")
+                print(f"    - {comb} (Simulasi penggabungan, coba scan QR-nya!)")
+                print("="*50)
             except Exception as e:
                 print(f"[-] Terjadi kesalahan saat inisialisasi: {e}")
                 
