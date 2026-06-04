@@ -8,4 +8,5 @@ services:
       - ./src/server/db:/app/db
     environment:
       - DB_PATH=/app/db/vault.sqlite
+      - PYTHONUNBUFFERED=1
     

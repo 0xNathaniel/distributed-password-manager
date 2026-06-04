@@ -38,6 +38,13 @@ def check_vault_contents():
             if vault_ct is None:
                 ct_info = "(empty)"
                 ct_len = 0
+            elif isinstance(vault_ct, str):
+                ct_hex = vault_ct
+                try:
+                    ct_len = len(bytes.fromhex(vault_ct))
+                except ValueError:
+                    ct_len = len(vault_ct)
+                ct_info = f"{ct_hex[:48]}... (length: {ct_len} bytes)"
             else:
                 ct_hex = vault_ct.hex()
                 ct_len = len(vault_ct)
@@ -45,6 +52,8 @@ def check_vault_contents():
 
             if vault_nonce is None:
                 nonce_info = "(empty)"
+            elif isinstance(vault_nonce, str):
+                nonce_info = vault_nonce
             else:
                 nonce_info = vault_nonce.hex()
 

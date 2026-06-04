@@ -11,6 +11,13 @@ vault_router = APIRouter(
 @vault_router.post("/init", response_model=dict)
 def init_vault(request: VaultInitRequest):
     """Save new vault data."""
+    print("\n[SERVER LOG] INCOMING INITIALIZATION PAYLOAD ", flush=True)
+    print(f"  Username    : {request.username}", flush=True)
+    print(f"  Server Share: {request.server_share[:40]}...", flush=True)
+    print(f"  Ciphertext  : {request.vault_ciphertext[:40]}... (length: {len(request.vault_ciphertext)} hex chars)", flush=True)
+    print(f"  Nonce       : {request.vault_nonce}", flush=True)
+    print("---------------------------------------------------\n", flush=True)
+
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -57,6 +64,12 @@ def get_vault(username: str):
 @vault_router.put("/{username}", response_model=dict)
 def update_vault(username: str, request: VaultUpdateRequest):
     """Receive updated encrypted vault from client after password addition/modification."""
+    print("\n[SERVER LOG] INCOMING UPDATE PAYLOAD", flush=True)
+    print(f"  Username  : {username}", flush=True)
+    print(f"  Ciphertext: {request.vault_ciphertext[:40]}... (length: {len(request.vault_ciphertext)} hex chars)", flush=True)
+    print(f"  Nonce     : {request.vault_nonce}", flush=True)
+    print("-------------------------------------------\n", flush=True)
+
     conn = get_db_connection()
     cursor = conn.cursor()
     

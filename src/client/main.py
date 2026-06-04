@@ -156,6 +156,11 @@ def vault_menu(username: str, vault_data: dict, master_password: str, is_backup:
                         vault_data[service] = old_data
                 else:
                     print("[-] Penghapusan dibatalkan.")
+        elif pilihan == '5':
+            print("\n[+] Mengunci vault. Kembali ke Menu Utama.")
+            break
+        else:
+            print("[-] Pilihan tidak valid.")
 
 def main_menu():
     while True:
